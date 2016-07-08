@@ -6,7 +6,11 @@
 
 RCT_EXTERN_METHOD(authorizeHealthKit: (NSDictionary *)typesToWrite typesToRead:(NSDictionary *)typesToRead);
 
-RCT_EXTERN_METHOD(readCharacteristics: (RCTResponseSenderBlock)callback);
+RCT_EXTERN_METHOD(readBiologicalSex: (RCTResponseSenderBlock)callback);
+
+RCT_EXTERN_METHOD(readBirthDate: (RCTResponseSenderBlock)callback);
+
+RCT_EXTERN_METHOD(readBloodType: (RCTResponseSenderBlock)callback);
 
 RCT_EXTERN_METHOD(readWeight: (RCTResponseSenderBlock)NSObject);
 

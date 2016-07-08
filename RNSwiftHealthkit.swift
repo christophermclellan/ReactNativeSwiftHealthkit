@@ -75,51 +75,70 @@ class RNSwiftHealthKit: NSObject {
 
   }
 
-
-  func readCharacteristics(callback: (NSObject) -> ()) -> Void
+  func readBirthDate (callback: (NSObject) -> ()) -> Void
   {
-     var error:NSError?
-     var age:Int!
-     var biologicalSex: HKBiologicalSexObject?
-     var bloodType: HKBloodTypeObject?
+    var error:NSError?
+    var age:Int!
 
-      // Read age and DOB
-      do {
-        let birthDay = try healthKitStore.dateOfBirth()
-        let today = NSDate()
-        let calendar = NSCalendar.currentCalendar()
-        let differenceComponents = NSCalendar.currentCalendar().components(NSCalendarUnit.Year, fromDate: birthDay, toDate: today, options: NSCalendarOptions(rawValue: 0))
-        age = differenceComponents.year
-      } catch let error as NSError {
-        print(error.localizedDescription)
-      }
+    // Read age and DOB
+    do {
+      let birthDay = try healthKitStore.dateOfBirth()
+      let today = NSDate()
+      let calendar = NSCalendar.currentCalendar()
+      let differenceComponents = NSCalendar.currentCalendar().components(NSCalendarUnit.Year, fromDate: birthDay, toDate: today, options: NSCalendarOptions(rawValue: 0))
+      age = differenceComponents.year
+    } catch let error as NSError {
+      print(error.localizedDescription)
+    }
 
-      // Read biological sex - (will be added to return statement once enum problem solved)
-      do {
-        biologicalSex = try healthKitStore.biologicalSex();
-      } catch let error as NSError {
-        print(error.localizedDescription)
-      }
+    let ret =  [
+      "age": age,
+    ]
 
-      var biologicalSexDefined = biologicalSexLiteral(biologicalSex?.biologicalSex);
+    callback([ret])
+  }
 
-      // Read blood type - (will be added to return statement once enum problem solved)
-      do {
-        bloodType = try healthKitStore.bloodType()
-        print(bloodType);
-      } catch let error as NSError {
-        print(error.localizedDescription)
-      }
+  func readBiologicalSex (callback: (NSObject) -> ()) -> Void
+  {
+    var error:NSError?
+    var biologicalSex: HKBiologicalSexObject?
+    // Read biological sex - (will be added to return statement once enum problem solved)
+    do {
+      biologicalSex = try healthKitStore.biologicalSex();
+    } catch let error as NSError {
+      print(error.localizedDescription)
+    }
 
-      var bloodTypeDefined = bloodTypeLiteral(bloodType?.bloodType);
+    var biologicalSexDefined = biologicalSexLiteral(biologicalSex?.biologicalSex);
 
-      let ret =  [
-        "age": age,
-        "sex": biologicalSexDefined,
-        "bloodType": bloodTypeDefined
-      ]
+    let ret =  [
+      "sex": biologicalSexDefined
+    ]
 
-      callback([ret])
+    callback([ret])
+  }
+
+  func readBloodType(callback: (NSObject) -> ()) -> Void
+  {
+    var error:NSError?
+
+    var bloodType: HKBloodTypeObject?
+
+    // Read blood type - (will be added to return statement once enum problem solved)
+    do {
+      bloodType = try healthKitStore.bloodType()
+      print(bloodType);
+    } catch let error as NSError {
+      print(error.localizedDescription)
+    }
+
+    var bloodTypeDefined = bloodTypeLiteral(bloodType?.bloodType);
+
+    let ret =  [
+      "bloodType": bloodTypeDefined
+    ]
+
+    callback([ret])
   }
 
   func biologicalSexLiteral(biologicalSex:HKBiologicalSex?)->String
@@ -175,105 +194,105 @@ class RNSwiftHealthKit: NSObject {
   }
 
   func readMostRecentSample(sampleType:HKSampleType , completion: ((HKSample!, NSError!) -> Void)!)
-    {
-      // 1. Build the Predicate
-      let past = NSDate.distantPast() as! NSDate
-      let now  = NSDate()
-      let mostRecentPredicate = HKQuery.predicateForSamplesWithStartDate(past, endDate:now, options: .None)
+  {
+    // 1. Build the Predicate
+    let past = NSDate.distantPast() as! NSDate
+    let now  = NSDate()
+    let mostRecentPredicate = HKQuery.predicateForSamplesWithStartDate(past, endDate:now, options: .None)
 
-      // 2. Build the sort descriptor to return the samples in descending order
-      let sortDescriptor = NSSortDescriptor(key:HKSampleSortIdentifierStartDate, ascending: false)
+    // 2. Build the sort descriptor to return the samples in descending order
+    let sortDescriptor = NSSortDescriptor(key:HKSampleSortIdentifierStartDate, ascending: false)
 
-      // 3. we want to limit the number of samples returned by the query to just 1 (the most recent)
-      let limit = 1
+    // 3. we want to limit the number of samples returned by the query to just 1 (the most recent)
+    let limit = 1
 
-      // 4. Build samples query
-      let sampleQuery = HKSampleQuery(sampleType: sampleType, predicate: mostRecentPredicate, limit: limit, sortDescriptors: [sortDescriptor])
-        { (sampleQuery, results, error ) -> Void in
+    // 4. Build samples query
+    let sampleQuery = HKSampleQuery(sampleType: sampleType, predicate: mostRecentPredicate, limit: limit, sortDescriptors: [sortDescriptor])
+    { (sampleQuery, results, error ) -> Void in
 
-          if let queryError = error {
-            completion(nil,error)
-            return;
-          }
-
-          // Get the first sample
-          let mostRecentSample = results!.first as? HKQuantitySample
-
-          // Execute the completion closure
-          if completion != nil {
-            completion(mostRecentSample,nil)
-          }
+      if let queryError = error {
+        completion(nil,error)
+        return;
       }
-      // 5. Execute the Query
-      self.healthKitStore.executeQuery(sampleQuery)
+
+      // Get the first sample
+      let mostRecentSample = results!.first as? HKQuantitySample
+
+      // Execute the completion closure
+      if completion != nil {
+        completion(mostRecentSample,nil)
+      }
     }
+    // 5. Execute the Query
+    self.healthKitStore.executeQuery(sampleQuery)
+  }
 
-    func readWeight(callback: (NSObject) -> ()) -> Void
-    {
-      // 1. Construct an HKSampleType for weight
-      let sampleType = HKSampleType.quantityTypeForIdentifier(HKQuantityTypeIdentifierBodyMass)
+  func readWeight(callback: (NSObject) -> ()) -> Void
+  {
+    // 1. Construct an HKSampleType for weight
+    let sampleType = HKSampleType.quantityTypeForIdentifier(HKQuantityTypeIdentifierBodyMass)
 
-      // 2. Call the method to read the most recent weight sample
-      readMostRecentSample(sampleType!, completion: { (mostRecentWeight, error) -> Void in
+    // 2. Call the method to read the most recent weight sample
+    readMostRecentSample(sampleType!, completion: { (mostRecentWeight, error) -> Void in
 
-        if( error != nil )
-        {
-          print("Error reading weight from HealthKit Store: \(error.localizedDescription)")
-          return;
-        }
+      if( error != nil )
+      {
+        print("Error reading weight from HealthKit Store: \(error.localizedDescription)")
+        return;
+      }
 
-        var weightLocalizedString = "Unknown";
-        let weight = mostRecentWeight as? HKQuantitySample;
+      var weightLocalizedString = "Unknown";
+      let weight = mostRecentWeight as? HKQuantitySample;
 
-        if let kilograms = weight?.quantity.doubleValueForUnit(HKUnit.gramUnitWithMetricPrefix(.Kilo)) {
+      if let kilograms = weight?.quantity.doubleValueForUnit(HKUnit.gramUnitWithMetricPrefix(.Kilo)) {
 
         let weightFormatter = NSMassFormatter()
-          weightFormatter.forPersonMassUse = true;
-          weightLocalizedString = weightFormatter.stringFromKilograms(kilograms)
-        }
+        weightFormatter.forPersonMassUse = true;
+        weightLocalizedString = weightFormatter.stringFromKilograms(kilograms)
+      }
 
-        let ret =  [
-          "weight": weightLocalizedString
-        ]
+      let ret =  [
+        "weight": weightLocalizedString
+      ]
 
-        callback([ret])
+      callback([ret])
 
-      });
+    });
 
-    }
+  }
 
-    func readHeight(callback: (NSObject) -> ()) -> Void
-    {
-      // 1. Construct an HKSampleType for weight
-      let sampleType = HKSampleType.quantityTypeForIdentifier(HKQuantityTypeIdentifierHeight)
+  func readHeight(callback: (NSObject) -> ()) -> Void
+  {
+    // 1. Construct an HKSampleType for weight
+    let sampleType = HKSampleType.quantityTypeForIdentifier(HKQuantityTypeIdentifierHeight)
 
-      // 2. Call the method to read the most recent weight sample
-      readMostRecentSample(sampleType!, completion: { (mostRecentHeight, error) -> Void in
+    // 2. Call the method to read the most recent weight sample
+    readMostRecentSample(sampleType!, completion: { (mostRecentHeight, error) -> Void in
 
-        if( error != nil )
-        {
-          print("Error reading height from HealthKit Store: \(error.localizedDescription)")
-          return;
-        }
+      if( error != nil )
+      {
+        print("Error reading height from HealthKit Store: \(error.localizedDescription)")
+        return;
+      }
 
-        var heightLocalizedString = "Unknown";
-        let height = mostRecentHeight as? HKQuantitySample;
+      var heightLocalizedString = "Unknown";
+      let height = mostRecentHeight as? HKQuantitySample;
 
-        if let meters = height?.quantity.doubleValueForUnit(HKUnit.meterUnit()) {
-          let heightFormatter = NSLengthFormatter()
-          heightFormatter.forPersonHeightUse = true;
-          heightLocalizedString = heightFormatter.stringFromMeters(meters);
-        }
+      if let meters = height?.quantity.doubleValueForUnit(HKUnit.meterUnit()) {
+        let heightFormatter = NSLengthFormatter()
+        heightFormatter.forPersonHeightUse = true;
+        heightLocalizedString = heightFormatter.stringFromMeters(meters);
+      }
 
-        let ret =  [
-          "height": heightLocalizedString
-        ]
+      let ret =  [
+        "height": heightLocalizedString
+      ]
 
-        callback([ret])
+      callback([ret])
 
-      });
+    });
 
-    }
+  }
 
 
 }
